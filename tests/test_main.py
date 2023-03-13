@@ -1,9 +1,9 @@
-import espq
+import sqr
 
 
 def test_scan():
     with open("./assets/test_qr.jpg", "rb") as f:
-        scanned = espq.scan_qr(f.read())
+        scanned = sqr.scan_qr(f.read())
     assert scanned == "https://suishenmafront1.sh.gov.cn/smzy/" \
         "fyz/qrcodeDetail?ewmid=8W1lYhwLBh9bZzk8GeZjGLcsvBpvKoB1pPyVd6" \
         "9w%2F4hSLWtxS9cJfLAJL%2BbCoDWmKS9yrOXp749BwAX8DcdBNQ%3D%3D&" \
@@ -11,5 +11,5 @@ def test_scan():
 
 
 def test_create():
-    pkpass = espq.create_pkpass("Test", "Test Data")
+    pkpass = sqr.create_pkpass("Test", "Test Data")
     assert pkpass is not None
