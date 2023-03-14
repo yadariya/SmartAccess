@@ -1,13 +1,13 @@
 [tool.poetry]
-name = "espq"
+name = "sqr"
 version = "0.1.0"
 description = ""
 authors = ["Your Name <you@example.com>"]
 readme = "README.md"
 
 [tool.poetry.scripts]
-dev = "espq:run_dev"
-run = "espq:run_prod"
+dev = "sqr:run_dev"
+run = "sqr:run_prod"
 
 [tool.poetry.dependencies]
 python = "^3.11"

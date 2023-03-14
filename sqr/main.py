@@ -76,10 +76,10 @@ app.mount("/", StaticFiles(directory="./static", html=True), name="static")
 
 
 def run_dev():
-    uvicorn.run("espq.main:app", port=int(
+    uvicorn.run("sqr.main:app", port=int(
         config['port']), host='0.0.0.0', reload=True)
 
 
 def run_prod():
-    uvicorn.run("espq.main:app", port=int(
+    uvicorn.run("sqr.main:app", port=int(
         config['port']), host='0.0.0.0', reload=False)
