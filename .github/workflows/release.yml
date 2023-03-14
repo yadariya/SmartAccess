@@ -49,3 +49,25 @@ jobs:
           cache-from: type=registry,ref=${{ secrets.DOCKER_HUB_USERNAME }}/${{ secrets.DOCKER_HUB_REPO }}:latest_buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKER_HUB_USERNAME }}/${{ secrets.DOCKER_HUB_REPO }}:latest_buildcache,mode=max
   
+  deploy:
+    runs-on: ubuntu-latest
+    needs: docker
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Deploy Serverless Container
+        id: deploy-sls-container
+        uses: yc-actions/yc-sls-container-deploy@v2
+        with:
+          yc-sa-json-credentials: ${{ secrets.YC_SERVICE_KEY }}
+          container-name: ${{ secrets.YC_CONTAINER_NAME }}
+          folder-id: ${{ secrets.YC_FOLDER }}
+          revision-service-account-id: ${{ secrets.YC_CONTAINER_ACC }}
+          revision-cores: 1
+          revision-memory: 128Mb
+          revision-core-fraction: 5
+          revision-concurrency: 8
+          revision-image-url: cr.yandex/${{ secrets.YC_REGISTRY }}/${{ secrets.DOCKER_HUB_REPO }}:${{ github.sha }}
+          revision-execution-timeout: 16
+          revision-provisioned: 1
+          revision-env: |-
+            KEY_PEM_PASS=${{ secrets.DEPLOY_KEY_CER_PWD }}
