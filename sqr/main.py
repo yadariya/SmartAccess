@@ -36,7 +36,7 @@ def FormDateTime():
     return Form(
         default=None,
         description='https://www.w3.org/TR/NOTE-datetime',
-        regex='\d\d\d\d-\d\d-\d\dT\d\d:\d\d(:\d\d)?(Z|([\+-]\d\d:\d\d))',
+        regex='\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):\d{2}(:\d{2})?(Z|([\+-]\d{2}:\d{2}))',
         examples={
             'A': '2006-01-02T15:04:05+01:00',
             'B': '2006-01-02T15:04+01:00',
@@ -49,6 +49,9 @@ def FormDateTime():
 def scan_qr(image: bytes):
     image_np = np.asarray(bytearray(image), dtype=np.uint8)
     image_cv = cv2.imdecode(image_np, cv2.IMREAD_COLOR)
+
+    if image_cv is None:
+        return None
 
     qrs = decode(image_cv)
     if len(qrs) != 1:
