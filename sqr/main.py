@@ -1,5 +1,7 @@
-from fastapi import FastAPI, File, Form, HTTPException, responses
+from typing import Annotated, Optional
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile, responses
 from fastapi.staticfiles import StaticFiles
+from uuid import uuid4
 import uvicorn
 import cv2
 import numpy as np
@@ -21,6 +23,29 @@ config = {
 assert config['pass'] is not None, "Cannot load KEY_PEM_PASS env"
 
 
+def FormColor():
+    return Form(
+        default=None,
+        description='rgb(R, G, B) where R, G, B are in [0, 255]',
+        regex='rgb\(\d{1,3}, \d{1,3}, \d{1,3}\)',
+        example='rgb(0, 255, 0)',
+    )
+
+
+def FormDateTime():
+    return Form(
+        default=None,
+        description='https://www.w3.org/TR/NOTE-datetime',
+        regex='\d\d\d\d-\d\d-\d\dT\d\d:\d\d(:\d\d)?(Z|([\+-]\d\d:\d\d))',
+        examples={
+            'A': '2006-01-02T15:04:05+01:00',
+            'B': '2006-01-02T15:04+01:00',
+            'C': '2006-01-02T15:04:05Z',
+            'D': '2006-01-02T15:04Z',
+        },
+    )
+
+
 def scan_qr(image: bytes):
     image_np = np.asarray(bytearray(image), dtype=np.uint8)
     image_cv = cv2.imdecode(image_np, cv2.IMREAD_COLOR)
@@ -32,21 +57,26 @@ def scan_qr(image: bytes):
     return qrs[0].data.decode()
 
 
-def create_pkpass(title, data):
+def create_pkpass(format, message, backgroundColor=None, foregroundColor=None, labelColor=None, logoText=None, relevantDate=None, expirationDate=None):
     passfile = Pass(
         StoreCard(),
         passTypeIdentifier='pass.wallet.glebosotov.azazkamaz',
-        organizationName='',
+        organizationName='Snikers Team',
         teamIdentifier='A6AQ53FW7T',
     )
 
-    passfile.logoText = title
-    passfile.serialNumber = 'Bebroid'
+    passfile.serialNumber = uuid4().hex
     passfile.barcode = Barcode(
-        format=BarcodeFormat.QR,
-        message=data,
+        format=format,
+        message=message,
         messageEncoding='utf8',
     )
+
+    passfile.backgroundColor = backgroundColor
+    passfile.foregroundColor = foregroundColor
+    passfile.logoText = logoText
+    passfile.relevantDate = relevantDate
+    passfile.expirationDate = expirationDate
 
     passfile.addFile('icon.png', open('./assets/icon.png', 'rb'))
     passfile.addFile('logo.png', open('./assets/logo.png', 'rb'))
@@ -57,14 +87,29 @@ def create_pkpass(title, data):
     return io.BytesIO(file.read())
 
 
-@app.post("/api/submit")
-async def submit(image: bytes = File(), title: str = Form()):
+@app.post("/api/submit", responses={400: {}})
+async def submit(
+    image: bytes = File(),
+    backgroundColor: Optional[str] = FormColor(),
+    foregroundColor: Optional[str] = FormColor(),
+    logoText: Optional[str] = Form(),
+    relevantDate: Optional[str] = FormDateTime(),
+    expirationDate: Optional[str] = FormDateTime(),
+):
     qr = scan_qr(image)
 
     if qr is None:
         raise HTTPException(400, "Should be exactly one QR")
 
-    file = create_pkpass(title, qr)
+    file = create_pkpass(
+        BarcodeFormat.QR,
+        qr,
+        backgroundColor=backgroundColor,
+        foregroundColor=foregroundColor,
+        logoText=logoText,
+        relevantDate=relevantDate,
+        expirationDate=expirationDate,
+    )
 
     return responses.StreamingResponse(
         file,
