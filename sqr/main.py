@@ -57,7 +57,14 @@ def scan_qr(image: bytes):
     return qrs[0].data.decode()
 
 
-def create_pkpass(format, message, backgroundColor=None, foregroundColor=None, labelColor=None, logoText=None, relevantDate=None, expirationDate=None):
+def convert_to_png_stream(image: bytes):
+    image_np = np.asarray(bytearray(image), dtype=np.uint8)
+    image_cv = cv2.imdecode(image_np, cv2.IMREAD_COLOR)
+    _, image_png = cv2.imencode('.png', image_cv)
+    return io.BytesIO(image_png.tobytes())
+
+
+def create_pkpass(format, message, strip=None, backgroundColor=None, foregroundColor=None, labelColor=None, logoText=None, label1=None, value1=None, label2=None, value2=None):
     passfile = Pass(
         StoreCard(),
         passTypeIdentifier='pass.wallet.glebosotov.azazkamaz',
@@ -74,12 +81,28 @@ def create_pkpass(format, message, backgroundColor=None, foregroundColor=None, l
 
     passfile.backgroundColor = backgroundColor
     passfile.foregroundColor = foregroundColor
+    passfile.labelColor = labelColor
     passfile.logoText = logoText
-    passfile.relevantDate = relevantDate
-    passfile.expirationDate = expirationDate
+
+    if value1 is not None:
+        passfile.passInformation.addSecondaryField(
+            uuid4().hex,
+            value1,
+            label1,
+        )
+
+    if value2 is not None:
+        passfile.passInformation.addAuxiliaryField(
+            uuid4().hex,
+            value2,
+            label2,
+        )
 
     passfile.addFile('icon.png', open('./assets/icon.png', 'rb'))
     passfile.addFile('logo.png', open('./assets/logo.png', 'rb'))
+
+    if strip is not None:
+        passfile.addFile('strip.png', strip)
 
     file = tempfile.NamedTemporaryFile()
     passfile.create(config['cert'], config['key'],
@@ -90,11 +113,15 @@ def create_pkpass(format, message, backgroundColor=None, foregroundColor=None, l
 @app.post("/api/submit", responses={400: {}})
 async def submit(
     image: bytes = File(),
+    background: bytes = File(),
     backgroundColor: Optional[str] = FormColor(),
     foregroundColor: Optional[str] = FormColor(),
+    labelColor: Optional[str] = FormColor(),
     logoText: Optional[str] = Form(),
-    relevantDate: Optional[str] = FormDateTime(),
-    expirationDate: Optional[str] = FormDateTime(),
+    fieldKey1: Optional[str] = Form(),
+    fieldValue1: Optional[str] = Form(),
+    fieldKey2: Optional[str] = Form(),
+    fieldValue2: Optional[str] = Form(),
 ):
     qr = scan_qr(image)
 
@@ -104,11 +131,15 @@ async def submit(
     file = create_pkpass(
         BarcodeFormat.QR,
         qr,
+        strip=convert_to_png_stream(background),
         backgroundColor=backgroundColor,
         foregroundColor=foregroundColor,
+        labelColor=labelColor,
         logoText=logoText,
-        relevantDate=relevantDate,
-        expirationDate=expirationDate,
+        label1=fieldKey1,
+        value1=fieldValue1,
+        label2=fieldKey2,
+        value2=fieldValue2,
     )
 
     return responses.StreamingResponse(
