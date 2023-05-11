@@ -1,5 +1,5 @@
-from typing import Annotated, Optional
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile, responses
+from typing import Optional
+from fastapi import FastAPI, File, Form, HTTPException, responses
 from fastapi.staticfiles import StaticFiles
 from uuid import uuid4
 import uvicorn
@@ -57,7 +57,10 @@ def scan_qr(image: bytes):
     return qrs[0].data.decode()
 
 
-def convert_to_png_stream(image: bytes):
+def convert_to_png_stream(image: Optional[bytes]):
+    if image is None:
+        return None
+
     image_np = np.asarray(bytearray(image), dtype=np.uint8)
     image_cv = cv2.imdecode(image_np, cv2.IMREAD_COLOR)
     _, image_png = cv2.imencode('.png', image_cv)
@@ -113,15 +116,15 @@ def create_pkpass(format, message, strip=None, backgroundColor=None, foregroundC
 @app.post("/api/submit", responses={400: {}})
 async def submit(
     image: bytes = File(),
-    background: bytes = File(),
+    background: bytes = File(default=None),
     backgroundColor: Optional[str] = FormColor(),
     foregroundColor: Optional[str] = FormColor(),
     labelColor: Optional[str] = FormColor(),
     logoText: Optional[str] = Form(),
-    fieldKey1: Optional[str] = Form(),
-    fieldValue1: Optional[str] = Form(),
-    fieldKey2: Optional[str] = Form(),
-    fieldValue2: Optional[str] = Form(),
+    fieldKey1: Optional[str] = Form(default=None),
+    fieldValue1: Optional[str] = Form(default=None),
+    fieldKey2: Optional[str] = Form(default=None),
+    fieldValue2: Optional[str] = Form(default=None),
 ):
     qr = scan_qr(image)
 
