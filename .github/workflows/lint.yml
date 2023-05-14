@@ -39,5 +39,5 @@ jobs:
           CERT_PEM: ./certs/certificate_test.pem
           KEY_PEM_PASS: bebrabobra
         run: |
-          poetry run pytest
+          poetry run pytest --cov=sqr
   
