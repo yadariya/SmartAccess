@@ -7,6 +7,7 @@ import string
 
 client = TestClient(app)
 
+
 def test_submit_no_qr():
     with open("./assets/logo.png", "rb") as f:
         image = f.read()
@@ -27,11 +28,13 @@ def test_submit_no_qr():
     assert response.status_code == 400
     assert response.json() == {"detail": "Should be exactly one QR"}
 
+
 def test_submit_endpoint_fuzzing():
     for _ in range(100):
         data = {random_string(): random_string() for _ in range(5)}
         response = client.post("/api/submit", data=json.dumps(data))
         assert response.status_code != 500
+
 
 def random_string(length=10):
     letters = string.ascii_lowercase

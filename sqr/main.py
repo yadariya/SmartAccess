@@ -14,34 +14,34 @@ import os
 app = FastAPI()
 
 config = {
-    'wwdr': os.getenv('WWDR_PEM', './certs/wwdr.pem'),
-    'cert': os.getenv('CERT_PEM', './certs/certificate.pem'),
-    'key': os.getenv('KEY_PEM', './certs/key.pem'),
-    'pass': os.getenv('KEY_PEM_PASS'),
-    'port': os.getenv('PORT', '8000')
+    "wwdr": os.getenv("WWDR_PEM", "./certs/wwdr.pem"),
+    "cert": os.getenv("CERT_PEM", "./certs/certificate.pem"),
+    "key": os.getenv("KEY_PEM", "./certs/key.pem"),
+    "pass": os.getenv("KEY_PEM_PASS"),
+    "port": os.getenv("PORT", "8000"),
 }
-assert config['pass'] is not None, "Cannot load KEY_PEM_PASS env"
+assert config["pass"] is not None, "Cannot load KEY_PEM_PASS env"
 
 
 def FormColor():
     return Form(
         default=None,
-        description='rgb(R, G, B) where R, G, B are in [0, 255]',
-        regex='rgb\(\d{1,3}, \d{1,3}, \d{1,3}\)',
-        example='rgb(0, 255, 0)',
+        description="rgb(R, G, B) where R, G, B are in [0, 255]",
+        regex=r"rgb\(\d{1,3}, \d{1,3}, \d{1,3}\)",
+        example="rgb(0, 255, 0)",
     )
 
 
 def FormDateTime():
     return Form(
         default=None,
-        description='https://www.w3.org/TR/NOTE-datetime',
-        regex='\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):\d{2}(:\d{2})?(Z|([\+-]\d{2}:\d{2}))',
+        description="https://www.w3.org/TR/NOTE-datetime",
+        regex=r"\d{4}-\d{2}-\d{2}T([01]\d|2[0-3]):\d{2}(:\d{2})?(Z|([\+-]\d{2}:\d{2}))",
         examples={
-            'A': '2006-01-02T15:04:05+01:00',
-            'B': '2006-01-02T15:04+01:00',
-            'C': '2006-01-02T15:04:05Z',
-            'D': '2006-01-02T15:04Z',
+            "A": "2006-01-02T15:04:05+01:00",
+            "B": "2006-01-02T15:04+01:00",
+            "C": "2006-01-02T15:04:05Z",
+            "D": "2006-01-02T15:04Z",
         },
     )
 
@@ -66,23 +66,35 @@ def convert_to_png_stream(image: Optional[bytes]):
 
     image_np = np.asarray(bytearray(image), dtype=np.uint8)
     image_cv = cv2.imdecode(image_np, cv2.IMREAD_COLOR)
-    _, image_png = cv2.imencode('.png', image_cv)
+    _, image_png = cv2.imencode(".png", image_cv)
     return io.BytesIO(image_png.tobytes())
 
 
-def create_pkpass(format, message, strip=None, backgroundColor=None, foregroundColor=None, labelColor=None, logoText=None, label1=None, value1=None, label2=None, value2=None):
+def create_pkpass(
+    format,
+    message,
+    strip=None,
+    backgroundColor=None,
+    foregroundColor=None,
+    labelColor=None,
+    logoText=None,
+    label1=None,
+    value1=None,
+    label2=None,
+    value2=None,
+):
     passfile = Pass(
         StoreCard(),
-        passTypeIdentifier='pass.wallet.glebosotov.azazkamaz',
-        organizationName='Snikers Team',
-        teamIdentifier='A6AQ53FW7T',
+        passTypeIdentifier="pass.wallet.glebosotov.azazkamaz",
+        organizationName="Snikers Team",
+        teamIdentifier="A6AQ53FW7T",
     )
 
     passfile.serialNumber = uuid4().hex
     passfile.barcode = Barcode(
         format=format,
         message=message,
-        messageEncoding='utf8',
+        messageEncoding="utf8",
     )
 
     passfile.backgroundColor = backgroundColor
@@ -104,15 +116,16 @@ def create_pkpass(format, message, strip=None, backgroundColor=None, foregroundC
             label2,
         )
 
-    passfile.addFile('icon.png', open('./assets/icon.png', 'rb'))
-    passfile.addFile('logo.png', open('./assets/logo.png', 'rb'))
+    passfile.addFile("icon.png", open("./assets/icon.png", "rb"))
+    passfile.addFile("logo.png", open("./assets/logo.png", "rb"))
 
     if strip is not None:
-        passfile.addFile('strip.png', strip)
+        passfile.addFile("strip.png", strip)
 
     file = tempfile.NamedTemporaryFile()
-    passfile.create(config['cert'], config['key'],
-                    config['wwdr'], config['pass'], file.name)
+    passfile.create(
+        config["cert"], config["key"], config["wwdr"], config["pass"], file.name
+    )
     return io.BytesIO(file.read())
 
 
@@ -150,7 +163,7 @@ async def submit(
 
     return responses.StreamingResponse(
         file,
-        headers={'Content-Disposition': 'attachment; filename="pass.pkpass"'},
+        headers={"Content-Disposition": 'attachment; filename="pass.pkpass"'},
     )
 
 
@@ -158,10 +171,8 @@ app.mount("/", StaticFiles(directory="./static", html=True), name="static")
 
 
 def run_dev():
-    uvicorn.run("sqr.main:app", port=int(
-        config['port']), host='0.0.0.0', reload=True)
+    uvicorn.run("sqr.main:app", port=int(config["port"]), host="0.0.0.0", reload=True)
 
 
 def run_prod():
-    uvicorn.run("sqr.main:app", port=int(
-        config['port']), host='0.0.0.0', reload=False)
+    uvicorn.run("sqr.main:app", port=int(config["port"]), host="0.0.0.0", reload=False)
